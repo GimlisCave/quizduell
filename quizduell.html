@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quizduell Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131c;
+    --surface2: #1c1c2e;
+    --border: #2a2a45;
+    --gold: #f5c842;
+    --gold2: #e8a020;
+    --blue: #4a9eff;
+    --green: #3ddc84;
+    --red: #ff5252;
+    --purple: #b388ff;
+    --text: #f0f0f8;
+    --muted: #7070a0;
+    --answered: #1e2a1e;
+    --answered-text: #2d4a2d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  #topbar h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 4px;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(245,200,66,0.4);
+    white-space: nowrap;
+  }
+
+  #topbar-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-gold { background: var(--gold); color: #000; }
+  .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-blue { background: var(--blue); color: #000; }
+  .btn-green { background: var(--green); color: #000; }
+  .btn-sm { padding: 5px 12px; font-size: 0.75rem; }
+
+  /* ── TEAMS BAR ── */
+  #teams-bar {
+    display: flex;
+    gap: 12px;
+    padding: 14px 24px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .team-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    min-width: 180px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .team-card.active-team {
+    border-color: var(--gold);
+    box-shadow: 0 0 16px rgba(245,200,66,0.2);
+  }
+
+  .team-color-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .team-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+    flex: 1;
+    cursor: pointer;
+  }
+  .team-name:hover { color: var(--gold); }
+
+  .team-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+
+  .team-score-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .score-adj {
+    background: var(--border);
+    border: none;
+    color: var(--text);
+    width: 20px; height: 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s;
+  }
+  .score-adj:hover { background: var(--gold); color: #000; }
+
+  .team-remove {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: var(--red);
+    border: none;
+    color: #fff;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0.7rem;
+    display: none;
+    align-items: center; justify-content: center;
+  }
+  .team-card:hover .team-remove { display: flex; }
+
+  #add-team-btn { white-space: nowrap; }
+
+  /* ── BOARD ── */
+  #board-wrap {
+    padding: 20px 24px;
+  }
+
+  #board {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .cat-header {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    color: var(--text);
+    line-height: 1.1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .q-cell {
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: var(--gold);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 64px;
+    user-select: none;
+  }
+  .q-cell:hover:not(.used) {
+    background: var(--surface);
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(245,200,66,0.25);
+    transform: scale(1.03);
+  }
+  .q-cell.used {
+    background: var(--answered);
+    border-color: var(--answered-text);
+    color: var(--answered-text);
+    cursor: default;
+  }
+
+  /* ── QUESTION MODAL ── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #modal-overlay.open { display: flex; }
+
+  #modal {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    max-width: 700px;
+    width: 100%;
+    padding: 32px;
+    position: relative;
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.93) translateY(10px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  #modal-cat {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  #modal-points {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4rem;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 20px;
+    text-shadow: 0 0 30px rgba(245,200,66,0.5);
+  }
+
+  #modal-question {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.6rem;
+    line-height: 1.3;
+    color: var(--text);
+    margin-bottom: 24px;
+    min-height: 60px;
+  }
+
+  #modal-answer-wrap {
+    display: none;
+    background: rgba(61,220,132,0.1);
+    border: 2px solid var(--green);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  #modal-answer-wrap.visible { display: block; }
+
+  #modal-answer-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 4px;
+  }
+
+  #modal-answer {
+    font-family: 'Barlow', sans-serif;
+    font-size: 1.2rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  #modal-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #modal-left-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  #team-award-wrap {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  .award-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 2px solid;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .award-btn:hover { filter: brightness(1.2); }
+  .award-btn .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  #modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: var(--border);
+    border: none;
+    color: var(--text);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  #modal-close:hover { background: var(--red); }
+
+  /* ── SETUP MODAL ── */
+  #setup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #setup-overlay.open { display: flex; }
+
+  #setup-modal {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    max-width: 560px;
+    width: 100%;
+    padding: 32px;
+    position: relative;
+  }
+
+  #setup-modal h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .form-group input, .form-group textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group textarea:focus {
+    border-color: var(--gold);
+  }
+  .form-group textarea { min-height: 80px; resize: vertical; font-size: 0.82rem; }
+
+  #teams-setup-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+  .team-setup-row {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .team-setup-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.95rem;
+    padding: 8px 12px;
+    outline: none;
+  }
+  .team-setup-row input:focus { border-color: var(--gold); }
+  .color-swatch {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.15s;
+  }
+  .color-swatch:hover { transform: scale(1.2); }
+
+  /* ── EDIT NAME MODAL ── */
+  #editname-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+  }
+  #editname-overlay.open { display: flex; }
+  #editname-modal {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: 320px;
+  }
+  #editname-modal h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 14px;
+  }
+  #editname-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 1rem;
+    padding: 10px 14px;
+    outline: none;
+    margin-bottom: 12px;
+  }
+  #editname-input:focus { border-color: var(--gold); }
+  #editname-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ── WINNER BANNER ── */
+  #winner-banner {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 400;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+    padding: 20px;
+  }
+  #winner-banner.open { display: flex; }
+  #winner-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 5rem;
+    letter-spacing: 6px;
+    color: var(--gold);
+    text-shadow: 0 0 60px rgba(245,200,66,0.6);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { text-shadow: 0 0 30px rgba(245,200,66,0.4); }
+    50% { text-shadow: 0 0 80px rgba(245,200,66,0.9), 0 0 120px rgba(245,200,66,0.5); }
+  }
+  #winner-team {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    letter-spacing: 3px;
+  }
+  #winner-score {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 1.4rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+  .confetti-emoji { font-size: 3rem; animation: bounce 0.8s ease-in-out infinite alternate; }
+  @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
+  /* ── JSON HINT ── */
+  #json-hint {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding: 10px 24px;
+    border-top: 1px solid var(--border);
+    line-height: 1.5;
+  }
+  code {
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    color: var(--blue);
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <h1>🎯 Quiz Duell</h1>
+  <div id="topbar-actions">
+    <button class="btn btn-outline" onclick="openSetup()">⚙️ Setup</button>
+    <button class="btn btn-outline" onclick="triggerJsonLoad()">📂 JSON laden</button>
+    <button class="btn btn-outline" onclick="showWinner()">🏆 Sieger</button>
+    <button class="btn btn-danger" onclick="confirmReset()">↺ Reset</button>
+    <input type="file" id="json-file-input" accept=".json,.csv" style="display:none" onchange="loadFile(event)">
+  </div>
+</div>
+
+<!-- TEAMS BAR -->
+<div id="teams-bar">
+  <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:0.8rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Teams:</span>
+  <div id="teams-list" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
+  <button class="btn btn-outline btn-sm" id="add-team-btn" onclick="addTeam()">+ Team</button>
+</div>
+
+<!-- BOARD -->
+<div id="board-wrap">
+  <div id="board"></div>
+</div>
+
+<div id="json-hint">
+  💡 JSON-Format: <code>[{"Kategorie":"...","Punkte":200,"Frage":"...","Antwort":"..."}]</code> &nbsp;|&nbsp; CSV mit Spalten: <code>Kategorie, Punkte, Frage, Antwort</code>
+</div>
+
+<!-- QUESTION MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <button id="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-cat"></div>
+    <div id="modal-points"></div>
+    <div id="modal-question"></div>
+    <div id="modal-answer-wrap">
+      <div id="modal-answer-label">Antwort</div>
+      <div id="modal-answer"></div>
+    </div>
+    <div id="modal-actions">
+      <div id="modal-left-actions">
+        <button class="btn btn-outline" id="show-answer-btn" onclick="showAnswer()">👁 Antwort zeigen</button>
+        <button class="btn btn-green btn-sm" id="mark-done-btn" onclick="markDone()">✓ Erledigt</button>
+      </div>
+    </div>
+    <div id="team-award-wrap"></div>
+  </div>
+</div>
+
+<!-- SETUP MODAL -->
+<div id="setup-overlay">
+  <div id="setup-modal">
+    <button id="modal-close" onclick="closeSetup()" style="position:absolute;top:16px;right:16px;background:var(--border);border:none;color:var(--text);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;">✕</button>
+    <h2>⚙️ Setup</h2>
+    <div class="form-group">
+      <label>Teams</label>
+      <div id="teams-setup-list"></div>
+      <button class="btn btn-outline btn-sm" onclick="addTeamSetup()">+ Team hinzufügen</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeSetup()">Abbrechen</button>
+      <button class="btn btn-gold" onclick="applySetup()">✓ Übernehmen</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT NAME MODAL -->
+<div id="editname-overlay">
+  <div id="editname-modal">
+    <h3>Team umbenennen</h3>
+    <input id="editname-input" type="text" placeholder="Teamname...">
+    <div id="editname-btns">
+      <button class="btn btn-outline btn-sm" onclick="closeEditName()">Abbrechen</button>
+      <button class="btn btn-gold btn-sm" onclick="applyEditName()">✓ OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- WINNER BANNER -->
+<div id="winner-banner">
+  <div class="confetti-emoji">🎉</div>
+  <div id="winner-title">SIEGER!</div>
+  <div id="winner-team"></div>
+  <div id="winner-score"></div>
+  <div style="display:flex;gap:12px;margin-top:16px;">
+    <button class="btn btn-gold" onclick="closeWinner()">Weiter spielen</button>
+    <button class="btn btn-danger" onclick="confirmReset(); closeWinner();">Neu starten</button>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// DATA
+// ──────────────────────────────────────────────
+
+const TEAM_COLORS = ['#4a9eff','#ff5252','#3ddc84','#f5c842','#b388ff','#ff80ab','#ff9800','#00bcd4'];
+
+let questions = [];
+let categories = [];
+let teams = [
+  { name: 'Team 1', score: 0, color: TEAM_COLORS[0] },
+  { name: 'Team 2', score: 0, color: TEAM_COLORS[1] },
+];
+let usedCells = new Set(); // "catIdx-pts"
+let currentCell = null;
+let editingTeamIdx = null;
+
+// ──────────────────────────────────────────────
+// DEFAULT DATA (CSV pasted)
+// ──────────────────────────────────────────────
+
+const DEFAULT_CSV = `Kategorie,Punkte,Frage,Antwort
+Deutsche Memes,200,Was muss laut Bauleiter Ronny Schäfer auf der Baustelle unbedingt sein?,Kranplätze müssen verdichtet sein
+Deutsche Memes,400,Mit welcher Drei-Wort-Frage nervte das Internet Politiker jahrelang bezüglich der Cannabis-Legalisierung?,Wann Bubatz legal?
+Deutsche Memes,600,Welcher Satz steht auf den gelben Aufklebern, die man mittlerweile weltweit an Straßenschildern, Laternen und Gipfelkreuzen findet?,Nett hier. Aber waren Sie schon mal in Baden-Württemberg?
+Deutsche Memes,800,"Worauf antwortet man in der deutschen Internetkultur klassischerweise mit: ""Ja, warum hast du 'ne Maske auf?""",Warum liegt hier Stroh?
+Deutsche Memes,1000,Wie heißt der Leiter für Kundenzufriedenheit, der laut Meme erst wieder geht, wenn der Anschluss läuft?,"Marcel D'Avis (von 1&1)"
+Österreichische Legenden,200,Welche gelb-rote, fast schon unheimliche Figur war das Maskottchen eines berühmten, mittlerweile pleitegegangenen österreichischen Baumarkts?,Baumaxl
+Österreichische Legenden,400,Wofür steht GIS?,Gebühren Info Service
+Österreichische Legenden,600,Welcher berühmte österreichische Baumeister lud jährlich schillernde Stargäste zum Wiener Opernball ein?,"Richard 'Mörtel' Lugner"
+Österreichische Legenden,800,"Wer kommentierte: 'Bist du deppat, 4 Zehntel is der vurn .. Baah!' ODER 'I wü ned hoid de Pappn! Verflucht nuamoi!'",Armin Assinger
+Österreichische Legenden,1000,Was ist Michael Häupls Lieblingstier?,Das Backhendl
+Trash TV Classics,200,"Wer sprach im Frauentausch die legendären Worte: 'Halt Stopp! Jetzt rede ich! Es bleibt alles so, wie's hier ist!'?",Andreas
+Trash TV Classics,400,Welches fiktive Molkereiprodukt erfand 'Nadine the Brain' bei Frauentausch, weil in den anderen Sachen 'Vitamine drin sind'?,Erdbeerkäse
+Trash TV Classics,600,Welche kultige und berüchtigte Familie aus Köthen wurde jahrelang von Stern TV begleitet?,Familie Ritter
+Trash TV Classics,800,wie groß ist der Altersunterschied von Claudia Obert und ihrem Freund?,36-37 Jahre
+Trash TV Classics,1000,"Welcher Kult-Bewohner aus der ATV-Serie 'Wir leben im Gemeindebau' dokumentierte jeden seiner Schritte und sagte oft 'Zack, Bumm!'?",Herr Doser
+Austro-Popkultur & Schmäh,200,Welcher berühmte Satz stammt von Edmund 'Mundl' Sackbauer, wenn es um sein geliebtes Kaltgetränk geht?,Mei Bier is ned deppat!
+Austro-Popkultur & Schmäh,400,Wie heißt die bekannteste österreichische Werbefamilie, die seit Jahrzehnten im TV Möbel verkauft?,Familie Putz (XXXLutz)
+Austro-Popkultur & Schmäh,600,Welcher österreichische Künstler schaffte es als einziger mit einem deutschsprachigen Song auf Platz 1 der US-Billboard-Charts?,Falco (mit Rock Me Amadeus)
+Austro-Popkultur & Schmäh,800,Welcher berühmte Austropop-Künstler veröffentlichte 1970 unter dem Pseudonym „Fritz“ die Single „Ich bin der Fritz (und habe keine Spritz)“,Georg Danzer
+Austro-Popkultur & Schmäh,1000,"Was bekommt man am Wiener Würstelstand, wenn man 'a Eitrige mit an Bugl und an 16er Blech' bestellt?","Käsekrainer, Brotscherzel und eine Dose Ottakringer Bier"
+Internet-Almans & Forenkultur,200,Wofür steht 'AEIOU'? r/aeiou,All Erdreich ist Österreich unter
+Internet-Almans & Forenkultur,400,Welchen Satz schreiben Deutsche Reddit User am häufigsten in die Kommentare?,Der Kommentarenbereich ist nun Eigentum der Bundesrepublik Deutschland
+Internet-Almans & Forenkultur,600,Welches Tier wird in der deutschen Reddit-Community jeden Mittwoch mit dem Satz 'Es ist Mittwoch, meine Kerle' gepostet?,Ein Frosch
+Internet-Almans & Forenkultur,800,Welches Qualitätsmerkmal muss ein wütender Aushang im Treppenhaus laut deutschem 'Internetgesetz' erfüllen, um rechtlich gültig zu sein?,Er muss laminiert sein
+Internet-Almans & Forenkultur,1000,Wie beschreibt Andy84 die Route über den Heuberggrat im Kleinwalsertal?,Leichte Nachmittagswanderung
+Politik Fails & Skandale,200,"Mit welchen drei Worten beschrieb HC Strache im Ibiza-Video, wie schnell und reibungslos man Journalisten austauschen könnte?","Zack, zack, zack!"
+Politik Fails & Skandale,400,Welches Programm führte 2023 aufgrund eines Fehlers zur verkündung des falschen Siegers?,Excel
+Politik Fails & Skandale,600,"Wer schrieb in einem berühmt gewordenen österreichischen Politik-Chat die Nachricht: 'Kriegst eh alles, was du willst 😘'?","Thomas Schmid (an Sebastian Kurz)"
+Politik Fails & Skandale,800,"Welcher EU-Abgeordnete blamierte sich in einem Interview, als er gefragt wurde, wann Norwegen den Euro eingeführt habe, und daraufhin völlig den Faden verlor?",Harald Vilimsky (FPÖ)
+Politik Fails & Skandale,1000,Welcher österreichische Finanzminister ging in die Geschichte ein, weil er vor einem U-Ausschuss plötzlich vergessen hatte, ob er überhaupt einen Laptop besitzt?,Gernot Blümel`;
+
+// ──────────────────────────────────────────────
+// CSV PARSER
+// ──────────────────────────────────────────────
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = splitCSVRow(lines[0]);
+  const results = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = splitCSVRow(lines[i]);
+    const obj = {};
+    headers.forEach((h, idx) => obj[h.trim()] = (vals[idx] || '').trim());
+    results.push(obj);
+  }
+  return results;
+}
+
+function splitCSVRow(row) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < row.length; i++) {
+    const c = row[i];
+    if (c === '"') {
+      if (inQ && row[i+1] === '"') { cur += '"'; i++; }
+      else { inQ = !inQ; }
+    } else if (c === ',' && !inQ) {
+      result.push(cur); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ──────────────────────────────────────────────
+// LOAD & NORMALIZE
+// ──────────────────────────────────────────────
+
+function loadData(raw) {
+  // Accepts array of objects with keys Kategorie/Punkte/Frage/Antwort
+  questions = raw.map(r => ({
+    category: r['Kategorie'] || r['category'] || '',
+    points: parseInt(r['Punkte'] || r['points'] || 0),
+    question: r['Frage'] || r['question'] || '',
+    answer: r['Antwort'] || r['answer'] || '',
+  })).filter(q => q.category && q.question);
+
+  categories = [...new Set(questions.map(q => q.category))];
+  usedCells = new Set();
+  renderBoard();
+}
+
+function loadFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const text = ev.target.result;
+    try {
+      if (file.name.endsWith('.json')) {
+        const data = JSON.parse(text);
+        loadData(Array.isArray(data) ? data : data.questions || []);
+      } else {
+        loadData(parseCSV(text));
+      }
+    } catch(err) {
+      alert('Fehler beim Laden: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function triggerJsonLoad() {
+  document.getElementById('json-file-input').click();
+}
+
+// ──────────────────────────────────────────────
+// BOARD RENDER
+// ──────────────────────────────────────────────
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  if (!categories.length) {
+    board.innerHTML = '<div style="color:var(--muted);font-family:\'Barlow Condensed\',sans-serif;padding:40px;text-align:center;font-size:1.2rem;letter-spacing:2px;">Keine Fragen geladen. JSON/CSV laden oder Standard-Daten verwenden.</div>';
+    return;
+  }
+
+  // Figure out unique point values per category
+  const catPoints = {};
+  categories.forEach(cat => {
+    catPoints[cat] = [...new Set(
+      questions.filter(q => q.category === cat).map(q => q.points)
+    )].sort((a,b) => a-b);
+  });
+
+  const maxRows = Math.max(...Object.values(catPoints).map(a => a.length));
+
+  board.style.gridTemplateColumns = `repeat(${categories.length}, 1fr)`;
+
+  let html = '';
+  // Headers
+  categories.forEach(cat => {
+    html += `<div class="cat-header">${cat}</div>`;
+  });
+  // Rows
+  for (let row = 0; row < maxRows; row++) {
+    categories.forEach((cat, catIdx) => {
+      const pts = catPoints[cat][row];
+      if (pts === undefined) {
+        html += `<div></div>`;
+      } else {
+        const key = `${catIdx}-${pts}`;
+        const used = usedCells.has(key);
+        html += `<div class="q-cell ${used ? 'used' : ''}" 
+          data-cat="${catIdx}" data-pts="${pts}" 
+          onclick="cellClick(this, ${catIdx}, ${pts})">${used ? '✓' : pts}</div>`;
+      }
+    });
+  }
+  board.innerHTML = html;
+}
+
+// ──────────────────────────────────────────────
+// CELL CLICK
+// ──────────────────────────────────────────────
+
+function cellClick(el, catIdx, pts) {
+  const key = `${catIdx}-${pts}`;
+  if (usedCells.has(key)) return;
+
+  const cat = categories[catIdx];
+  const matching = questions.filter(q => q.category === cat && q.points === pts);
+  const q = matching[Math.floor(Math.random() * matching.length)];
+  if (!q) return;
+
+  currentCell = { key, q, pts };
+  openModal(q, cat, pts);
+}
+
+// ──────────────────────────────────────────────
+// MODAL
+// ──────────────────────────────────────────────
+
+function openModal(q, cat, pts) {
+  document.getElementById('modal-cat').textContent = cat;
+  document.getElementById('modal-points').textContent = pts;
+  document.getElementById('modal-question').textContent = q.question;
+  document.getElementById('modal-answer').textContent = q.answer;
+  document.getElementById('modal-answer-wrap').classList.remove('visible');
+  document.getElementById('modal-overlay').classList.add('open');
+  renderAwardButtons();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  currentCell = null;
+}
+
+function showAnswer() {
+  document.getElementById('modal-answer-wrap').classList.add('visible');
+}
+
+function markDone() {
+  if (!currentCell) return;
+  usedCells.add(currentCell.key);
+  renderBoard();
+  closeModal();
+}
+
+function renderAwardButtons() {
+  const wrap = document.getElementById('team-award-wrap');
+  if (!teams.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);width:100%;margin-bottom:6px;">Punkte vergeben an:</div>' +
+    teams.map((t, i) => `
+      <button class="award-btn" style="color:${t.color};border-color:${t.color};" onclick="awardPoints(${i})">
+        <span class="dot" style="background:${t.color}"></span>
+        ${t.name}
+      </button>`).join('');
+}
+
+function awardPoints(teamIdx) {
+  if (!currentCell) return;
+  teams[teamIdx].score += currentCell.pts;
+  usedCells.add(currentCell.key);
+  renderTeams();
+  renderBoard();
+  closeModal();
+}
+
+// ──────────────────────────────────────────────
+// TEAMS
+// ──────────────────────────────────────────────
+
+function renderTeams() {
+  const list = document.getElementById('teams-list');
+  list.innerHTML = teams.map((t, i) => `
+    <div class="team-card" id="tc-${i}">
+      <div class="team-color-dot" style="background:${t.color}"></div>
+      <div class="team-name" onclick="openEditName(${i})" title="Umbenennen">${t.name}</div>
+      <div class="team-score-btns">
+        <button class="score-adj" onclick="adjustScore(${i}, 100)" title="+100">▲</button>
+        <button class="score-adj" onclick="adjustScore(${i}, -100)" title="-100">▼</button>
+      </div>
+      <div class="team-score">${t.score}</div>
+      <button class="team-remove" onclick="removeTeam(${i})" title="Entfernen">✕</button>
+    </div>`).join('');
+}
+
+function addTeam() {
+  const idx = teams.length;
+  teams.push({ name: `Team ${idx + 1}`, score: 0, color: TEAM_COLORS[idx % TEAM_COLORS.length] });
+  renderTeams();
+  renderAwardButtons();
+}
+
+function removeTeam(idx) {
+  teams.splice(idx, 1);
+  renderTeams();
+  renderAwardButtons();
+}
+
+function adjustScore(idx, delta) {
+  teams[idx].score = Math.max(0, teams[idx].score + delta);
+  renderTeams();
+}
+
+// ──────────────────────────────────────────────
+// EDIT NAME
+// ──────────────────────────────────────────────
+
+function openEditName(idx) {
+  editingTeamIdx = idx;
+  document.getElementById('editname-input').value = teams[idx].name;
+  document.getElementById('editname-overlay').classList.add('open');
+  document.getElementById('editname-input').focus();
+  document.getElementById('editname-input').select();
+}
+
+function closeEditName() {
+  document.getElementById('editname-overlay').classList.remove('open');
+  editingTeamIdx = null;
+}
+
+function applyEditName() {
+  if (editingTeamIdx === null) return;
+  const val = document.getElementById('editname-input').value.trim();
+  if (val) teams[editingTeamIdx].name = val;
+  renderTeams();
+  renderAwardButtons();
+  closeEditName();
+}
+
+document.getElementById('editname-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') applyEditName();
+  if (e.key === 'Escape') closeEditName();
+});
+
+// ──────────────────────────────────────────────
+// SETUP MODAL
+// ──────────────────────────────────────────────
+
+function openSetup() {
+  renderSetupTeams();
+  document.getElementById('setup-overlay').classList.add('open');
+}
+
+function closeSetup() {
+  document.getElementById('setup-overlay').classList.remove('open');
+}
+
+function renderSetupTeams() {
+  const list = document.getElementById('teams-setup-list');
+  list.innerHTML = teams.map((t, i) => `
+    <div class="team-setup-row" id="setup-row-${i}">
+      <input type="text" value="${t.name}" id="setup-name-${i}" placeholder="Teamname">
+      <div class="color-swatch" style="background:${t.color}" onclick="cycleSwatch(${i})" title="Farbe wechseln"></div>
+      <button class="btn btn-danger btn-sm" onclick="removeSetupTeam(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addTeamSetup() {
+  const idx = teams.length;
+  teams.push({ name: `Team ${idx + 1}`, score: 0, color: TEAM_COLORS[idx % TEAM_COLORS.length] });
+  renderSetupTeams();
+}
+
+function removeSetupTeam(idx) {
+  teams.splice(idx, 1);
+  renderSetupTeams();
+}
+
+function cycleSwatch(idx) {
+  const ci = TEAM_COLORS.indexOf(teams[idx].color);
+  teams[idx].color = TEAM_COLORS[(ci + 1) % TEAM_COLORS.length];
+  renderSetupTeams();
+}
+
+function applySetup() {
+  teams.forEach((t, i) => {
+    const inp = document.getElementById(`setup-name-${i}`);
+    if (inp) t.name = inp.value.trim() || t.name;
+  });
+  renderTeams();
+  renderAwardButtons();
+  closeSetup();
+}
+
+// ──────────────────────────────────────────────
+// WINNER
+// ──────────────────────────────────────────────
+
+function showWinner() {
+  if (!teams.length) { alert('Keine Teams vorhanden!'); return; }
+  const max = Math.max(...teams.map(t => t.score));
+  const winners = teams.filter(t => t.score === max);
+  const banner = document.getElementById('winner-banner');
+  const wt = document.getElementById('winner-team');
+  const ws = document.getElementById('winner-score');
+
+  if (winners.length === 1) {
+    wt.textContent = winners[0].name;
+    wt.style.color = winners[0].color;
+  } else {
+    wt.textContent = winners.map(w => w.name).join(' & ');
+    wt.style.color = 'var(--gold)';
+  }
+  ws.textContent = `${max} Punkte`;
+  banner.classList.add('open');
+}
+
+function closeWinner() {
+  document.getElementById('winner-banner').classList.remove('open');
+}
+
+// ──────────────────────────────────────────────
+// RESET
+// ──────────────────────────────────────────────
+
+function confirmReset() {
+  if (confirm('Wirklich alles zurücksetzen? (Fragen bleiben erhalten, Punkte und Felder werden zurückgesetzt)')) {
+    teams.forEach(t => t.score = 0);
+    usedCells = new Set();
+    renderTeams();
+    renderBoard();
+  }
+}
+
+// ──────────────────────────────────────────────
+// KEYBOARD
+// ──────────────────────────────────────────────
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeSetup();
+    closeEditName();
+    closeWinner();
+  }
+  if (e.key === ' ' && document.getElementById('modal-overlay').classList.contains('open')) {
+    e.preventDefault();
+    showAnswer();
+  }
+});
+
+// Close modal on overlay click
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+document.getElementById('setup-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('setup-overlay')) closeSetup();
+});
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+
+loadData(parseCSV(DEFAULT_CSV));
+renderTeams();
+</script>
+</body>
+</html>
